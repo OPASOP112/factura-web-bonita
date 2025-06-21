@@ -14,11 +14,9 @@ interface CompanyFormProps {
 
 const CompanyForm = ({ company, onSave, onCancel }: CompanyFormProps) => {
   const [formData, setFormData] = useState({
-    name: company?.name || "",
+    razonSocial: company?.razonSocial || "",
     ruc: company?.ruc || "",
-    address: company?.address || "",
-    phone: company?.phone || "",
-    email: company?.email || ""
+    direccion: company?.direccion || ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,7 +28,11 @@ const CompanyForm = ({ company, onSave, onCancel }: CompanyFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const dataToSave = {
+      ...formData,
+      id: company?.id || Date.now()
+    };
+    onSave(dataToSave);
   };
 
   return (
@@ -57,11 +59,11 @@ const CompanyForm = ({ company, onSave, onCancel }: CompanyFormProps) => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre de la Empresa</Label>
+                  <Label htmlFor="razonSocial">Razón Social</Label>
                   <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
+                    id="razonSocial"
+                    name="razonSocial"
+                    value={formData.razonSocial}
                     onChange={handleChange}
                     required
                   />
@@ -79,38 +81,15 @@ const CompanyForm = ({ company, onSave, onCancel }: CompanyFormProps) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
+                    <Label htmlFor="direccion">Dirección</Label>
                     <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
+                      id="direccion"
+                      name="direccion"
+                      value={formData.direccion}
                       onChange={handleChange}
                       required
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Dirección</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
                 </div>
 
                 <div className="flex justify-end space-x-4">

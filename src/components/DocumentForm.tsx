@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,17 +14,50 @@ interface DocumentFormProps {
 }
 
 const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
+  // Mock data - en una app real, estos vendrían de tu base de datos
+  const [clientes] = useState([
+    { id: 1, nombre: "Juan", apellido: "Pérez" },
+    { id: 2, nombre: "María", apellido: "García" },
+    { id: 3, nombre: "Carlos", apellido: "López" }
+  ]);
+
+  const [empresas] = useState([
+    { id: 1, razonSocial: "TechSolutions S.A.", ruc: "20123456789" },
+    { id: 2, razonSocial: "Innovación Digital EIRL", ruc: "20987654321" },
+    { id: 3, razonSocial: "Servicios Empresariales SAC", ruc: "20456789123" }
+  ]);
+
+  const [tiposDocumento] = useState([
+    { id: 1, descripcion: "Factura" },
+    { id: 2, descripcion: "Cotización" },
+    { id: 3, descripcion: "Nota de Crédito" },
+    { id: 4, descripcion: "Nota de Débito" }
+  ]);
+
+  const [formasPago] = useState([
+    { id: 1, descripcion: "Efectivo" },
+    { id: 2, descripcion: "Tarjeta de Crédito" },
+    { id: 3, descripcion: "Transferencia Bancaria" },
+    { id: 4, descripcion: "Cheque" }
+  ]);
+
+  const [productos] = useState([
+    { id: 1, descripcion: "Laptop HP" },
+    { id: 2, descripcion: "Mouse Inalámbrico" },
+    { id: 3, descripcion: "Teclado Mecánico" },
+    { id: 4, descripcion: "Monitor 24 pulgadas" }
+  ]);
+
   const [formData, setFormData] = useState({
-    type: document?.type || "Factura",
-    number: document?.number || "",
-    client: document?.client || "",
-    company: document?.company || "",
-    date: document?.date || new Date().toISOString().split('T')[0],
-    status: document?.status || "Pendiente"
+    fechaEmision: document?.fechaEmision || new Date().toISOString().split('T')[0],
+    idCliente: document?.idCliente || "",
+    idEmpresa: document?.idEmpresa || "",
+    idTipoDocumento: document?.idTipoDocumento || "",
+    idFormaPago: document?.idFormaPago || ""
   });
 
-  const [items, setItems] = useState(document?.items || [
-    { product: "", quantity: 1, price: 0, total: 0 }
+  const [detalles, setDetalles] = useState(document?.detalles || [
+    { idProducto: "", cantidad: 1, precioUnitario: 0, descuento: 0, igvDetalle: 0 }
   ]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,38 +74,53 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
     }));
   };
 
-  const handleItemChange = (index: number, field: string, value: any) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
+  const handleDetalleChange = (index: number, field: string, value: any) => {
+    const newDetalles = [...detalles];
+    newDetalles[index][field] = value;
     
-    if (field === 'quantity' || field === 'price') {
-      newItems[index].total = newItems[index].quantity * newItems[index].price;
+    // Calcular IGV automáticamente (18%)
+    if (field === 'cantidad' || field === 'precioUnitario' || field === 'descuento') {
+      const subtotal = (newDetalles[index].cantidad * newDetalles[index].precioUnitario) - newDetalles[index].descuento;
+      newDetalles[index].igvDetalle = subtotal * 0.18;
     }
     
-    setItems(newItems);
+    setDetalles(newDetalles);
   };
 
-  const addItem = () => {
-    setItems([...items, { product: "", quantity: 1, price: 0, total: 0 }]);
+  const addDetalle = () => {
+    setDetalles([...detalles, { idProducto: "", cantidad: 1, precioUnitario: 0, descuento: 0, igvDetalle: 0 }]);
   };
 
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+  const removeDetalle = (index: number) => {
+    setDetalles(detalles.filter((_, i) => i !== index));
   };
 
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.total, 0);
+  const calculateTotals = () => {
+    const subtotal = detalles.reduce((sum, detalle) => {
+      return sum + ((detalle.cantidad * detalle.precioUnitario) - detalle.descuento);
+    }, 0);
+    
+    const totalIGV = detalles.reduce((sum, detalle) => sum + detalle.igvDetalle, 0);
+    const importeTotal = subtotal + totalIGV;
+    
+    return { subtotal, totalIGV, importeTotal };
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const { totalIGV, importeTotal } = calculateTotals();
+    
     const dataToSave = {
       ...formData,
-      items,
-      total: calculateTotal()
+      detalles,
+      importeIGV: totalIGV,
+      importeTotal,
+      id: document?.id || Date.now()
     };
     onSave(dataToSave);
   };
+
+  const { subtotal, totalIGV, importeTotal } = calculateTotals();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -94,159 +142,188 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
               <CardHeader>
                 <CardTitle>Información del Documento</CardTitle>
                 <CardDescription>
-                  Datos básicos del documento
+                  Datos básicos del documento según tu esquema de base de datos
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="type">Tipo de Documento</Label>
+                    <Label htmlFor="idTipoDocumento">Tipo de Documento</Label>
                     <Select 
-                      value={formData.type} 
-                      onValueChange={(value) => handleSelectChange('type', value)}
+                      value={formData.idTipoDocumento.toString()} 
+                      onValueChange={(value) => handleSelectChange('idTipoDocumento', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecciona tipo de documento" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Factura">Factura</SelectItem>
-                        <SelectItem value="Cotización">Cotización</SelectItem>
-                        <SelectItem value="Nota de Crédito">Nota de Crédito</SelectItem>
-                        <SelectItem value="Nota de Débito">Nota de Débito</SelectItem>
+                        {tiposDocumento.map(tipo => (
+                          <SelectItem key={tipo.id} value={tipo.id.toString()}>
+                            {tipo.descripcion}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="number">Número</Label>
+                    <Label htmlFor="fechaEmision">Fecha de Emisión</Label>
                     <Input
-                      id="number"
-                      name="number"
-                      value={formData.number}
-                      onChange={handleChange}
-                      placeholder="F001-0001"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Fecha</Label>
-                    <Input
-                      id="date"
-                      name="date"
+                      id="fechaEmision"
+                      name="fechaEmision"
                       type="date"
-                      value={formData.date}
+                      value={formData.fechaEmision}
                       onChange={handleChange}
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="client">Cliente</Label>
-                    <Input
-                      id="client"
-                      name="client"
-                      value={formData.client}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Empresa</Label>
-                    <Input
-                      id="company"
-                      name="company"
-                      value={formData.company}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Estado</Label>
+                    <Label htmlFor="idCliente">Cliente</Label>
                     <Select 
-                      value={formData.status} 
-                      onValueChange={(value) => handleSelectChange('status', value)}
+                      value={formData.idCliente.toString()} 
+                      onValueChange={(value) => handleSelectChange('idCliente', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecciona cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Pendiente">Pendiente</SelectItem>
-                        <SelectItem value="Pagado">Pagado</SelectItem>
-                        <SelectItem value="Vencido">Vencido</SelectItem>
-                        <SelectItem value="Anulado">Anulado</SelectItem>
+                        {clientes.map(cliente => (
+                          <SelectItem key={cliente.id} value={cliente.id.toString()}>
+                            {cliente.nombre} {cliente.apellido}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="idEmpresa">Empresa</Label>
+                    <Select 
+                      value={formData.idEmpresa.toString()} 
+                      onValueChange={(value) => handleSelectChange('idEmpresa', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {empresas.map(empresa => (
+                          <SelectItem key={empresa.id} value={empresa.id.toString()}>
+                            {empresa.razonSocial}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="idFormaPago">Forma de Pago</Label>
+                  <Select 
+                    value={formData.idFormaPago.toString()} 
+                    onValueChange={(value) => handleSelectChange('idFormaPago', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona forma de pago" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formasPago.map(forma => (
+                        <SelectItem key={forma.id} value={forma.id.toString()}>
+                          {forma.descripcion}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Items */}
+            {/* Document Details */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>Productos/Servicios</CardTitle>
+                    <CardTitle>Detalle del Documento</CardTitle>
                     <CardDescription>
-                      Agrega los productos o servicios del documento
+                      Productos/servicios incluidos en el documento
                     </CardDescription>
                   </div>
-                  <Button type="button" onClick={addItem} size="sm">
+                  <Button type="button" onClick={addDetalle} size="sm">
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar Item
+                    Agregar Producto
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-4 items-end">
-                      <div className="col-span-4">
-                        <Label>Producto/Servicio</Label>
-                        <Input
-                          value={item.product}
-                          onChange={(e) => handleItemChange(index, 'product', e.target.value)}
-                          placeholder="Nombre del producto"
-                          required
-                        />
+                  {detalles.map((detalle, index) => (
+                    <div key={index} className="grid grid-cols-12 gap-4 items-end p-4 border rounded-lg">
+                      <div className="col-span-3">
+                        <Label>Producto</Label>
+                        <Select 
+                          value={detalle.idProducto.toString()} 
+                          onValueChange={(value) => handleDetalleChange(index, 'idProducto', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona producto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {productos.map(producto => (
+                              <SelectItem key={producto.id} value={producto.id.toString()}>
+                                {producto.descripcion}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="col-span-2">
                         <Label>Cantidad</Label>
                         <Input
                           type="number"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                          value={detalle.cantidad}
+                          onChange={(e) => handleDetalleChange(index, 'cantidad', parseInt(e.target.value) || 0)}
                           min="1"
                           required
                         />
                       </div>
                       <div className="col-span-2">
-                        <Label>Precio</Label>
+                        <Label>Precio Unitario</Label>
                         <Input
                           type="number"
                           step="0.01"
-                          value={item.price}
-                          onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)}
+                          value={detalle.precioUnitario}
+                          onChange={(e) => handleDetalleChange(index, 'precioUnitario', parseFloat(e.target.value) || 0)}
                           min="0"
                           required
                         />
                       </div>
                       <div className="col-span-2">
-                        <Label>Total</Label>
+                        <Label>Descuento</Label>
                         <Input
-                          value={`$${item.total.toFixed(2)}`}
+                          type="number"
+                          step="0.01"
+                          value={detalle.descuento}
+                          onChange={(e) => handleDetalleChange(index, 'descuento', parseFloat(e.target.value) || 0)}
+                          min="0"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>IGV</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={detalle.igvDetalle.toFixed(2)}
                           readOnly
                           className="bg-gray-50"
                         />
                       </div>
-                      <div className="col-span-2">
-                        {items.length > 1 && (
+                      <div className="col-span-1">
+                        {detalles.length > 1 && (
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => removeItem(index)}
+                            onClick={() => removeDetalle(index)}
                             className="text-red-600 hover:bg-red-50"
                           >
                             <Trash className="h-4 w-4" />
@@ -259,10 +336,10 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                 
                 <div className="mt-6 pt-4 border-t">
                   <div className="flex justify-end">
-                    <div className="text-right">
-                      <p className="text-lg font-semibold">
-                        Total: ${calculateTotal().toFixed(2)}
-                      </p>
+                    <div className="text-right space-y-2">
+                      <p className="text-sm text-gray-600">Subtotal: S/. {subtotal.toFixed(2)}</p>
+                      <p className="text-sm text-gray-600">IGV (18%): S/. {totalIGV.toFixed(2)}</p>
+                      <p className="text-lg font-semibold">Total: S/. {importeTotal.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>

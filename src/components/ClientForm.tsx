@@ -14,11 +14,9 @@ interface ClientFormProps {
 
 const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
   const [formData, setFormData] = useState({
-    name: client?.name || "",
-    email: client?.email || "",
-    phone: client?.phone || "",
-    company: client?.company || "",
-    address: client?.address || ""
+    nombre: client?.nombre || "",
+    apellido: client?.apellido || "",
+    fechaNacimiento: client?.fechaNacimiento || ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,7 +28,11 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const dataToSave = {
+      ...formData,
+      id: client?.id || Date.now()
+    };
+    onSave(dataToSave);
   };
 
   return (
@@ -58,45 +60,21 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nombre Completo</Label>
+                    <Label htmlFor="nombre">Nombre</Label>
                     <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
+                      id="nombre"
+                      name="nombre"
+                      value={formData.nombre}
                       onChange={handleChange}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="apellido">Apellido</Label>
                     <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Empresa</Label>
-                    <Input
-                      id="company"
-                      name="company"
-                      value={formData.company}
+                      id="apellido"
+                      name="apellido"
+                      value={formData.apellido}
                       onChange={handleChange}
                       required
                     />
@@ -104,11 +82,12 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Dirección</Label>
+                  <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
                   <Input
-                    id="address"
-                    name="address"
-                    value={formData.address}
+                    id="fechaNacimiento"
+                    name="fechaNacimiento"
+                    type="date"
+                    value={formData.fechaNacimiento}
                     onChange={handleChange}
                     required
                   />
