@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { createClient, updateClient, Client } from "@/services/clientService";
 
 interface ClientFormProps {
-  client?: any;
-  onSave: (data: any) => void;
+  client?: Client | null;
+  onSave: () => void;
   onCancel: () => void;
 }
 
@@ -18,6 +20,8 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
     apellido: client?.apellido || "",
     fechaNacimiento: client?.fechaNacimiento || ""
   });
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -26,13 +30,36 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const dataToSave = {
-      ...formData,
-      id: client?.id || Date.now()
-    };
-    onSave(dataToSave);
+    
+    try {
+      setLoading(true);
+      
+      if (client?.id) {
+        await updateClient(client.id, formData);
+        toast({
+          title: "Cliente actualizado",
+          description: "Los datos del cliente han sido actualizados.",
+        });
+      } else {
+        await createClient(formData);
+        toast({
+          title: "Cliente creado",
+          description: "El nuevo cliente ha sido agregado correctamente.",
+        });
+      }
+      
+      onSave();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Error al guardar cliente",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,7 +67,7 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <Button variant="outline" size="sm" onClick={onCancel}>
+            <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
@@ -67,6 +94,7 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
                       value={formData.nombre}
                       onChange={handleChange}
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -77,6 +105,7 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
                       value={formData.apellido}
                       onChange={handleChange}
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -90,16 +119,17 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
                     value={formData.fechaNacimiento}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                  <Button type="button" variant="outline" onClick={onCancel}>
+                  <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
                     <Save className="h-4 w-4 mr-2" />
-                    {client ? "Actualizar" : "Crear"} Cliente
+                    {loading ? "Guardando..." : (client ? "Actualizar" : "Crear")} Cliente
                   </Button>
                 </div>
               </form>

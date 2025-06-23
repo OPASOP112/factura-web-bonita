@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,66 +7,71 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Search, Edit, Trash, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import CompanyForm from "@/components/CompanyForm";
+import { getAllCompanies, deleteCompany, Company } from "@/services/companyService";
 
 const Companies = () => {
-  const [companies, setCompanies] = useState([
-    {
-      id: 1,
-      name: "TechSolutions S.A.",
-      ruc: "20123456789",
-      address: "Av. Tecnología 123, Lima",
-      phone: "+51 1 234-5678",
-      email: "info@techsolutions.com"
-    },
-    {
-      id: 2,
-      name: "Innovación Digital EIRL",
-      ruc: "10987654321",
-      address: "Jr. Innovación 456, Arequipa", 
-      phone: "+51 54 987-6543",
-      email: "contacto@innovacion.com"
-    }
-  ]);
-  
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingCompany, setEditingCompany] = useState(null);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const { toast } = useToast();
 
-  const filteredCompanies = companies.filter(company =>
-    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.ruc.includes(searchTerm) ||
-    company.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleDelete = (id: number) => {
-    setCompanies(companies.filter(company => company.id !== id));
-    toast({
-      title: "Empresa eliminada",
-      description: "La empresa ha sido eliminada correctamente.",
-    });
+  const loadCompanies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getAllCompanies();
+      setCompanies(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar empresas');
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSave = (companyData: any) => {
-    if (editingCompany) {
-      setCompanies(companies.map(company => 
-        company.id === editingCompany.id ? { ...companyData, id: editingCompany.id } : company
-      ));
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const filteredCompanies = companies.filter(company =>
+    company.razonSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.ruc.includes(searchTerm)
+  );
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta empresa?')) {
+      return;
+    }
+
+    try {
+      await deleteCompany(id);
+      setCompanies(companies.filter(company => company.id !== id));
       toast({
-        title: "Empresa actualizada",
-        description: "Los datos de la empresa han sido actualizados.",
+        title: "Empresa eliminada",
+        description: "La empresa ha sido eliminada correctamente.",
       });
-    } else {
-      const newCompany = { ...companyData, id: Date.now() };
-      setCompanies([...companies, newCompany]);
+    } catch (err) {
       toast({
-        title: "Empresa creada",
-        description: "La nueva empresa ha sido agregada correctamente.",
+        title: "Error",
+        description: "No se pudo eliminar la empresa",
+        variant: "destructive",
       });
     }
+  };
+
+  const handleSave = () => {
     setShowForm(false);
     setEditingCompany(null);
+    loadCompanies();
   };
 
   if (showForm) {
@@ -105,11 +110,19 @@ const Companies = () => {
           <Button 
             onClick={() => setShowForm(true)}
             className="bg-green-600 hover:bg-green-700"
+            disabled={loading}
           >
             <Plus className="h-4 w-4 mr-2" />
             Nueva Empresa
           </Button>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Search */}
         <Card className="mb-6">
@@ -117,10 +130,11 @@ const Companies = () => {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar empresas por nombre, RUC o email..."
+                placeholder="Buscar empresas por razón social o RUC..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                disabled={loading}
               />
             </div>
           </CardContent>
@@ -129,58 +143,62 @@ const Companies = () => {
         {/* Companies Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Empresas ({filteredCompanies.length})</CardTitle>
+            <CardTitle>
+              Lista de Empresas {!loading && `(${filteredCompanies.length})`}
+            </CardTitle>
             <CardDescription>
               Gestiona la información de las empresas
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>RUC</TableHead>
-                  <TableHead>Dirección</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCompanies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell className="font-medium">{company.name}</TableCell>
-                    <TableCell>{company.ruc}</TableCell>
-                    <TableCell>{company.address}</TableCell>
-                    <TableCell>{company.phone}</TableCell>
-                    <TableCell>{company.email}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingCompany(company);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(company.id)}
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">
+                Cargando empresas...
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Razón Social</TableHead>
+                    <TableHead>RUC</TableHead>
+                    <TableHead>Dirección</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {filteredCompanies.length === 0 && (
+                </TableHeader>
+                <TableBody>
+                  {filteredCompanies.map((company) => (
+                    <TableRow key={company.id}>
+                      <TableCell className="font-medium">{company.razonSocial}</TableCell>
+                      <TableCell>{company.ruc}</TableCell>
+                      <TableCell>{company.direccion}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingCompany(company);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => company.id && handleDelete(company.id)}
+                            className="text-red-600 hover:bg-red-50"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {!loading && filteredCompanies.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No se encontraron empresas
               </div>
