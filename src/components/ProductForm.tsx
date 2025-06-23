@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Producto } from "@/types";
 import { createProduct, updateProduct } from "@/services/productService";
+import { Producto } from "@/types";
 
 interface ProductFormProps {
   producto?: Producto | null;
@@ -86,13 +86,13 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
               Volver
             </Button>
             <h1 className="text-3xl font-bold text-gray-800">
-              {producto ? "Editar Producto" : "Insertar Producto"}
+              {producto ? "Editar Producto" : "Nuevo Producto"}
             </h1>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>{producto ? "Actualizar Producto" : "Insertar Nuevo Producto"}</CardTitle>
+              <CardTitle>{producto ? "Actualizar Producto" : "Crear Producto"}</CardTitle>
               <CardDescription>
                 {producto ? "Modifica la información del producto" : "Ingresa los datos del nuevo producto"}
               </CardDescription>
@@ -121,7 +121,7 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
                       onChange={handleChange}
                       required
                       disabled={loading}
-                      maxLength={20}
+                      maxLength={50}
                     />
                   </div>
                 </div>
@@ -163,7 +163,7 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
                       onChange={handleChange}
                       required
                       disabled={loading}
-                      maxLength={50}
+                      maxLength={100}
                     />
                   </div>
                 </div>
@@ -178,7 +178,6 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
                     rows={4}
                     required
                     disabled={loading}
-                    maxLength={500}
                   />
                 </div>
 
@@ -188,7 +187,7 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
                   </Button>
                   <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={loading}>
                     <Save className="h-4 w-4 mr-2" />
-                    {loading ? "Guardando..." : (producto ? "Actualizar" : "Insertar")} Producto
+                    {loading ? "Guardando..." : (producto ? "Actualizar" : "Crear")} Producto
                   </Button>
                 </div>
               </form>
