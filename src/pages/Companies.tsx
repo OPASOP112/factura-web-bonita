@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,15 +8,16 @@ import { ArrowLeft, Plus, Search, Edit, Trash, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import CompanyForm from "@/components/CompanyForm";
-import { getAllCompanies, deleteCompany, Company } from "@/services/companyService";
+import { getAllCompanies, deleteCompany } from "@/services/companyService";
+import { Empresa } from "@/types";
 
 const Companies = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [editingCompany, setEditingCompany] = useState<Empresa | null>(null);
   const { toast } = useToast();
 
   const loadCompanies = async () => {

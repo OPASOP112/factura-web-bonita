@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createClient, updateClient, Client } from "@/services/clientService";
+import { createClient, updateClient } from "@/services/clientService";
+import { Cliente } from "@/types";
 
 interface ClientFormProps {
-  client?: Client | null;
+  client?: Cliente | null;
   onSave: () => void;
   onCancel: () => void;
 }

@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createCompany, updateCompany, Company } from "@/services/companyService";
+import { createCompany, updateCompany } from "@/services/companyService";
+import { Empresa } from "@/types";
 
 interface CompanyFormProps {
-  company?: Company | null;
+  company?: Empresa | null;
   onSave: () => void;
   onCancel: () => void;
 }

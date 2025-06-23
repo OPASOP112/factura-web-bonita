@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,15 +8,16 @@ import { ArrowLeft, Plus, Search, Edit, Trash, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ClientForm from "@/components/ClientForm";
-import { getAllClients, deleteClient, Client } from "@/services/clientService";
+import { getAllClients, deleteClient } from "@/services/clientService";
+import { Cliente } from "@/types";
 
 const Clients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingClient, setEditingClient] = useState<Cliente | null>(null);
   const { toast } = useToast();
 
   const loadClients = async () => {
