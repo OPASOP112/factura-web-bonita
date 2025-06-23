@@ -1,27 +1,9 @@
 
+import { Documento, ApiResponse } from '@/types';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-export interface DocumentDetail {
-  idProducto: number;
-  cantidad: number;
-  precioUnitario: number;
-  descuento: number;
-  igvDetalle: number;
-}
-
-export interface Document {
-  id?: number;
-  fechaEmision: string;
-  idCliente: number;
-  idEmpresa: number;
-  idTipoDocumento: number;
-  idFormaPago: number;
-  importeIGV: number;
-  importeTotal: number;
-  detalles: DocumentDetail[];
-}
-
-export const getAllDocuments = async (): Promise<Document[]> => {
+export const getAllDocuments = async (): Promise<Documento[]> => {
   const response = await fetch(`${API_URL}/documentos`);
   if (!response.ok) {
     throw new Error('Error al obtener documentos');
@@ -29,7 +11,7 @@ export const getAllDocuments = async (): Promise<Document[]> => {
   return response.json();
 };
 
-export const getDocumentById = async (id: number): Promise<Document> => {
+export const getDocumentById = async (id: number): Promise<Documento> => {
   const response = await fetch(`${API_URL}/documentos/${id}`);
   if (!response.ok) {
     throw new Error('Error al obtener documento');
@@ -37,13 +19,13 @@ export const getDocumentById = async (id: number): Promise<Document> => {
   return response.json();
 };
 
-export const createDocument = async (document: Document): Promise<Document> => {
+export const createDocument = async (documento: Omit<Documento, 'id'>): Promise<Documento> => {
   const response = await fetch(`${API_URL}/documentos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(document),
+    body: JSON.stringify(documento),
   });
   if (!response.ok) {
     throw new Error('Error al crear documento');
@@ -51,13 +33,13 @@ export const createDocument = async (document: Document): Promise<Document> => {
   return response.json();
 };
 
-export const updateDocument = async (id: number, document: Document): Promise<Document> => {
+export const updateDocument = async (id: number, documento: Omit<Documento, 'id'>): Promise<Documento> => {
   const response = await fetch(`${API_URL}/documentos/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(document),
+    body: JSON.stringify(documento),
   });
   if (!response.ok) {
     throw new Error('Error al actualizar documento');

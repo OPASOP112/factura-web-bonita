@@ -1,14 +1,9 @@
 
+import { Empresa, ApiResponse } from '@/types';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-export interface Company {
-  id?: number;
-  razonSocial: string;
-  ruc: string;
-  direccion: string;
-}
-
-export const getAllCompanies = async (): Promise<Company[]> => {
+export const getAllCompanies = async (): Promise<Empresa[]> => {
   const response = await fetch(`${API_URL}/empresas`);
   if (!response.ok) {
     throw new Error('Error al obtener empresas');
@@ -16,7 +11,7 @@ export const getAllCompanies = async (): Promise<Company[]> => {
   return response.json();
 };
 
-export const getCompanyById = async (id: number): Promise<Company> => {
+export const getCompanyById = async (id: number): Promise<Empresa> => {
   const response = await fetch(`${API_URL}/empresas/${id}`);
   if (!response.ok) {
     throw new Error('Error al obtener empresa');
@@ -24,13 +19,13 @@ export const getCompanyById = async (id: number): Promise<Company> => {
   return response.json();
 };
 
-export const createCompany = async (company: Company): Promise<Company> => {
+export const createCompany = async (empresa: Omit<Empresa, 'id'>): Promise<Empresa> => {
   const response = await fetch(`${API_URL}/empresas`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(company),
+    body: JSON.stringify(empresa),
   });
   if (!response.ok) {
     throw new Error('Error al crear empresa');
@@ -38,13 +33,13 @@ export const createCompany = async (company: Company): Promise<Company> => {
   return response.json();
 };
 
-export const updateCompany = async (id: number, company: Company): Promise<Company> => {
+export const updateCompany = async (id: number, empresa: Omit<Empresa, 'id'>): Promise<Empresa> => {
   const response = await fetch(`${API_URL}/empresas/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(company),
+    body: JSON.stringify(empresa),
   });
   if (!response.ok) {
     throw new Error('Error al actualizar empresa');

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,74 +8,62 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Plus, Search, Edit, Trash, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProductForm from "@/components/ProductForm";
+import { Producto } from "@/types";
+import { getAllProducts, deleteProduct } from "@/services/productService";
 
 const Products = () => {
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Laptop HP Pavilion",
-      code: "LAP-001",
-      price: 1299.99,
-      stock: 15,
-      category: "Electrónicos",
-      description: "Laptop HP Pavilion 15.6 pulgadas, Intel Core i5"
-    },
-    {
-      id: 2,
-      name: "Mouse Logitech MX",
-      code: "MOU-002", 
-      price: 89.99,
-      stock: 45,
-      category: "Accesorios",
-      description: "Mouse inalámbrico Logitech MX Master 3"
-    },
-    {
-      id: 3,
-      name: "Teclado Mecánico",
-      code: "KEY-003",
-      price: 159.99,
-      stock: 23,
-      category: "Accesorios",
-      description: "Teclado mecánico RGB con switches Cherry MX"
-    }
-  ]);
-  
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<Producto | null>(null);
   const { toast } = useToast();
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleDelete = (id: number) => {
-    setProducts(products.filter(product => product.id !== id));
-    toast({
-      title: "Producto eliminado",
-      description: "El producto ha sido eliminado correctamente.",
-    });
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllProducts();
+      setProductos(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al cargar productos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSave = (productData: any) => {
-    if (editingProduct) {
-      setProducts(products.map(product => 
-        product.id === editingProduct.id ? { ...productData, id: editingProduct.id } : product
-      ));
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const filteredProducts = productos.filter(producto =>
+    producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    producto.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    producto.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteProduct(id);
+      await loadProducts();
       toast({
-        title: "Producto actualizado",
-        description: "Los datos del producto han sido actualizados.",
+        title: "Producto eliminado",
+        description: "El producto ha sido eliminado correctamente.",
       });
-    } else {
-      const newProduct = { ...productData, id: Date.now() };
-      setProducts([...products, newProduct]);
+    } catch (error) {
       toast({
-        title: "Producto insertado",
-        description: "El nuevo producto ha sido agregado correctamente.",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al eliminar producto",
+        variant: "destructive",
       });
     }
+  };
+
+  const handleSave = async () => {
+    await loadProducts();
     setShowForm(false);
     setEditingProduct(null);
   };
@@ -83,7 +71,7 @@ const Products = () => {
   if (showForm) {
     return (
       <ProductForm
-        product={editingProduct}
+        producto={editingProduct}
         onSave={handleSave}
         onCancel={() => {
           setShowForm(false);
@@ -146,64 +134,70 @@ const Products = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.code}</TableCell>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        product.stock > 20 
-                          ? 'bg-green-100 text-green-800' 
-                          : product.stock > 10 
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.stock} unid.
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">{product.description}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingProduct(product);
-                            setShowForm(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">
+                Cargando productos...
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Precio</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {filteredProducts.length === 0 && (
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((producto) => (
+                    <TableRow key={producto.id}>
+                      <TableCell className="font-medium">{producto.codigo}</TableCell>
+                      <TableCell>{producto.nombre}</TableCell>
+                      <TableCell>{producto.categoria}</TableCell>
+                      <TableCell>${producto.precio.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          producto.stock > 20 
+                            ? 'bg-green-100 text-green-800' 
+                            : producto.stock > 10 
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {producto.stock} unid.
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">{producto.descripcion}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProduct(producto);
+                              setShowForm(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => producto.id && handleDelete(producto.id)}
+                            className="text-red-600 hover:bg-red-50"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {!loading && filteredProducts.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No se encontraron productos
               </div>

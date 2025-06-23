@@ -1,17 +1,9 @@
 
+import { Producto, ApiResponse } from '@/types';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-export interface Product {
-  id?: number;
-  name: string;
-  code: string;
-  price: number;
-  stock: number;
-  category: string;
-  description: string;
-}
-
-export const getAllProducts = async (): Promise<Product[]> => {
+export const getAllProducts = async (): Promise<Producto[]> => {
   const response = await fetch(`${API_URL}/productos`);
   if (!response.ok) {
     throw new Error('Error al obtener productos');
@@ -19,7 +11,7 @@ export const getAllProducts = async (): Promise<Product[]> => {
   return response.json();
 };
 
-export const getProductById = async (id: number): Promise<Product> => {
+export const getProductById = async (id: number): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos/${id}`);
   if (!response.ok) {
     throw new Error('Error al obtener producto');
@@ -27,13 +19,13 @@ export const getProductById = async (id: number): Promise<Product> => {
   return response.json();
 };
 
-export const createProduct = async (product: Product): Promise<Product> => {
+export const createProduct = async (producto: Omit<Producto, 'id'>): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(product),
+    body: JSON.stringify(producto),
   });
   if (!response.ok) {
     throw new Error('Error al crear producto');
@@ -41,13 +33,13 @@ export const createProduct = async (product: Product): Promise<Product> => {
   return response.json();
 };
 
-export const updateProduct = async (id: number, product: Product): Promise<Product> => {
+export const updateProduct = async (id: number, producto: Omit<Producto, 'id'>): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(product),
+    body: JSON.stringify(producto),
   });
   if (!response.ok) {
     throw new Error('Error al actualizar producto');

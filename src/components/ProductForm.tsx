@@ -6,22 +6,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Producto } from "@/types";
+import { createProduct, updateProduct } from "@/services/productService";
 
 interface ProductFormProps {
-  product?: any;
-  onSave: (data: any) => void;
+  producto?: Producto | null;
+  onSave: () => void;
   onCancel: () => void;
 }
 
-const ProductForm = ({ product, onSave, onCancel }: ProductFormProps) => {
+const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
   const [formData, setFormData] = useState({
-    name: product?.name || "",
-    code: product?.code || "",
-    price: product?.price || "",
-    stock: product?.stock || "",
-    category: product?.category || "",
-    description: product?.description || ""
+    nombre: producto?.nombre || "",
+    codigo: producto?.codigo || "",
+    precio: producto?.precio?.toString() || "",
+    stock: producto?.stock?.toString() || "",
+    categoria: producto?.categoria || "",
+    descripcion: producto?.descripcion || ""
   });
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -30,14 +35,45 @@ const ProductForm = ({ product, onSave, onCancel }: ProductFormProps) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const dataToSave = {
-      ...formData,
-      price: parseFloat(formData.price),
-      stock: parseInt(formData.stock)
-    };
-    onSave(dataToSave);
+    
+    try {
+      setLoading(true);
+      
+      const productData = {
+        nombre: formData.nombre,
+        codigo: formData.codigo,
+        precio: parseFloat(formData.precio),
+        stock: parseInt(formData.stock),
+        categoria: formData.categoria,
+        descripcion: formData.descripcion
+      };
+
+      if (producto?.id) {
+        await updateProduct(producto.id, productData);
+        toast({
+          title: "Producto actualizado",
+          description: "Los datos del producto han sido actualizados.",
+        });
+      } else {
+        await createProduct(productData);
+        toast({
+          title: "Producto creado",
+          description: "El nuevo producto ha sido agregado correctamente.",
+        });
+      }
+      
+      onSave();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al guardar producto",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,58 +81,64 @@ const ProductForm = ({ product, onSave, onCancel }: ProductFormProps) => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center space-x-4 mb-8">
-            <Button variant="outline" size="sm" onClick={onCancel}>
+            <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
             <h1 className="text-3xl font-bold text-gray-800">
-              {product ? "Editar Producto" : "Insertar Producto"}
+              {producto ? "Editar Producto" : "Insertar Producto"}
             </h1>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>{product ? "Actualizar Producto" : "Insertar Nuevo Producto"}</CardTitle>
+              <CardTitle>{producto ? "Actualizar Producto" : "Insertar Nuevo Producto"}</CardTitle>
               <CardDescription>
-                {product ? "Modifica la información del producto" : "Ingresa los datos del nuevo producto"}
+                {producto ? "Modifica la información del producto" : "Ingresa los datos del nuevo producto"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nombre del Producto</Label>
+                    <Label htmlFor="nombre">Nombre del Producto</Label>
                     <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
+                      id="nombre"
+                      name="nombre"
+                      value={formData.nombre}
                       onChange={handleChange}
                       required
+                      disabled={loading}
+                      maxLength={100}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="code">Código</Label>
+                    <Label htmlFor="codigo">Código</Label>
                     <Input
-                      id="code"
-                      name="code"
-                      value={formData.code}
+                      id="codigo"
+                      name="codigo"
+                      value={formData.codigo}
                       onChange={handleChange}
                       required
+                      disabled={loading}
+                      maxLength={20}
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Precio</Label>
+                    <Label htmlFor="precio">Precio</Label>
                     <Input
-                      id="price"
-                      name="price"
+                      id="precio"
+                      name="precio"
                       type="number"
                       step="0.01"
-                      value={formData.price}
+                      min="0"
+                      value={formData.precio}
                       onChange={handleChange}
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -105,42 +147,48 @@ const ProductForm = ({ product, onSave, onCancel }: ProductFormProps) => {
                       id="stock"
                       name="stock"
                       type="number"
+                      min="0"
                       value={formData.stock}
                       onChange={handleChange}
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="category">Categoría</Label>
+                    <Label htmlFor="categoria">Categoría</Label>
                     <Input
-                      id="category"
-                      name="category"
-                      value={formData.category}
+                      id="categoria"
+                      name="categoria"
+                      value={formData.categoria}
                       onChange={handleChange}
                       required
+                      disabled={loading}
+                      maxLength={50}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descripción</Label>
+                  <Label htmlFor="descripcion">Descripción</Label>
                   <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
+                    id="descripcion"
+                    name="descripcion"
+                    value={formData.descripcion}
                     onChange={handleChange}
                     rows={4}
                     required
+                    disabled={loading}
+                    maxLength={500}
                   />
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                  <Button type="button" variant="outline" onClick={onCancel}>
+                  <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                  <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={loading}>
                     <Save className="h-4 w-4 mr-2" />
-                    {product ? "Actualizar" : "Insertar"} Producto
+                    {loading ? "Guardando..." : (producto ? "Actualizar" : "Insertar")} Producto
                   </Button>
                 </div>
               </form>
