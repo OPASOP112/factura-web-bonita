@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Search, FileText, Download, Edit, Trash } from "lucide-react";
+import { ArrowLeft, Plus, Search, FileText, Download, Edit, Trash, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import DocumentForm from "@/components/DocumentForm";
 
@@ -200,6 +199,15 @@ const Documents = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
+                        <Link to={`/documents/${doc.id}/detalles`}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 hover:bg-green-50"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         <Button
                           size="sm"
                           variant="outline"
