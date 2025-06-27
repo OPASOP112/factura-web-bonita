@@ -24,23 +24,36 @@ export interface Producto {
 }
 
 export interface DetalleDocumento {
+  id?: number;
+  idDocumento: number;
   idProducto: number;
-  cantidad: number;
   precioUnitario: number;
-  descuento: number;
+  cantidad: number;
   igvDetalle: number;
+  descuento: number;
 }
 
 export interface Documento {
   id?: number;
   fechaEmision: string;
+  importeTotal: number;
+  importeIGV: number;
   idCliente: number;
   idEmpresa: number;
   idTipoDocumento: number;
   idFormaPago: number;
-  importeIGV: number;
+  detalles?: DetalleDocumento[];
+}
+
+export interface DocumentoDTO {
+  id?: number;
+  fechaEmision: string;
   importeTotal: number;
-  detalles: DetalleDocumento[];
+  importeIGV: number;
+  idCliente: number;
+  idEmpresa: number;
+  idTipoDocumento: number;
+  idFormaPago: number;
 }
 
 export interface ApiResponse<T> {
