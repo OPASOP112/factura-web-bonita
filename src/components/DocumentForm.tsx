@@ -6,6 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save, Plus, Trash } from "lucide-react";
+import { Cliente, Empresa, Producto } from "@/types";
+import { useToast } from "@/hooks/use-toast";
+import { getAllClients } from "@/services/clientService";
+import { getAllCompanies } from "@/services/companyService";
+import { getAllProducts } from "@/services/productService";
+import { createDocument } from "@/services/documentService";
+import { createDetalle } from "@/services/documentoDetalleService";
 
 interface DocumentFormProps {
   document?: any;
@@ -14,39 +21,52 @@ interface DocumentFormProps {
 }
 
 const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
-  // Mock data - en una app real, estos vendrían de tu base de datos
-  const [clientes] = useState([
-    { id: 1, nombre: "Juan", apellido: "Pérez" },
-    { id: 2, nombre: "María", apellido: "García" },
-    { id: 3, nombre: "Carlos", apellido: "López" }
-  ]);
+  const { toast } = useToast();
 
-  const [empresas] = useState([
-    { id: 1, razonSocial: "TechSolutions S.A.", ruc: "20123456789" },
-    { id: 2, razonSocial: "Innovación Digital EIRL", ruc: "20987654321" },
-    { id: 3, razonSocial: "Servicios Empresariales SAC", ruc: "20456789123" }
-  ]);
+  // Mock data - en una app real, estos vendrían de tu base de datos
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [clientesData, empresasData, productosData] = await Promise.all([
+          getAllClients(),
+          getAllCompanies(),
+          getAllProducts(),
+        ]);
+        setClientes(clientesData);
+        setEmpresas(empresasData);
+        setProductos(productosData);
+      } catch (error) {
+        toast({
+          title: "Error al cargar datos",
+          description: "Verifica tu conexión o intenta nuevamente.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
 
   const [tiposDocumento] = useState([
     { id: 1, descripcion: "Factura" },
-    { id: 2, descripcion: "Cotización" },
-    { id: 3, descripcion: "Nota de Crédito" },
-    { id: 4, descripcion: "Nota de Débito" }
+    { id: 2, descripcion: "Boleta" }
   ]);
 
   const [formasPago] = useState([
     { id: 1, descripcion: "Efectivo" },
-    { id: 2, descripcion: "Tarjeta de Crédito" },
-    { id: 3, descripcion: "Transferencia Bancaria" },
-    { id: 4, descripcion: "Cheque" }
+    { id: 2, descripcion: "Tarjeta" },
+    { id: 3, descripcion: "Yape/Plin" }
   ]);
 
-  const [productos] = useState([
-    { id: 1, descripcion: "Laptop HP" },
-    { id: 2, descripcion: "Mouse Inalámbrico" },
-    { id: 3, descripcion: "Teclado Mecánico" },
-    { id: 4, descripcion: "Monitor 24 pulgadas" }
-  ]);
 
   const [formData, setFormData] = useState({
     fechaEmision: document?.fechaEmision || new Date().toISOString().split('T')[0],
@@ -77,13 +97,13 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
   const handleDetalleChange = (index: number, field: string, value: any) => {
     const newDetalles = [...detalles];
     newDetalles[index][field] = value;
-    
+
     // Calcular IGV automáticamente (18%)
     if (field === 'cantidad' || field === 'precioUnitario' || field === 'descuento') {
       const subtotal = (newDetalles[index].cantidad * newDetalles[index].precioUnitario) - newDetalles[index].descuento;
       newDetalles[index].igvDetalle = subtotal * 0.18;
     }
-    
+
     setDetalles(newDetalles);
   };
 
@@ -99,26 +119,65 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
     const subtotal = detalles.reduce((sum, detalle) => {
       return sum + ((detalle.cantidad * detalle.precioUnitario) - detalle.descuento);
     }, 0);
-    
+
     const totalIGV = detalles.reduce((sum, detalle) => sum + detalle.igvDetalle, 0);
     const importeTotal = subtotal + totalIGV;
-    
+
     return { subtotal, totalIGV, importeTotal };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const { totalIGV, importeTotal } = calculateTotals();
-    
-    const dataToSave = {
-      ...formData,
-      detalles,
-      importeIGV: totalIGV,
-      importeTotal,
-      id: document?.id || Date.now()
-    };
-    onSave(dataToSave);
+
+    try {
+      // Paso 1: Crear documento
+      const documentoPayload = {
+        fechaEmision: formData.fechaEmision,
+        importeIGV: totalIGV,
+        importeTotal: importeTotal,
+        idCliente: parseInt(formData.idCliente),
+        idEmpresa: parseInt(formData.idEmpresa),
+        idFormaPago: parseInt(formData.idFormaPago),
+        idTipoDocumento: parseInt(formData.idTipoDocumento)
+      };
+      const nuevoDocumento = await createDocument(documentoPayload);
+
+      // Paso 2: Crear detalles
+      const detallesPromises = detalles.map(detalle => {
+        const detallePayload = {
+          idProducto: parseInt(detalle.idProducto),
+          cantidad: detalle.cantidad,
+          precioUnitario: detalle.precioUnitario,
+          descuento: detalle.descuento,
+          igvDetalle: detalle.igvDetalle,
+          idDocumento: nuevoDocumento.id
+        };
+        console.log(detallePayload)
+
+        return createDetalle(detallePayload);
+      });
+
+      await Promise.all(detallesPromises);
+
+      toast({
+        title: 'Documento creado',
+        description: 'La factura fue registrada correctamente.',
+      });
+
+      onSave({ ...nuevoDocumento }); // opcional: puedes incluir detalles si los necesitas
+
+    } catch (error: any) {
+      toast({
+        title: 'Error al guardar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
+
+
 
   const { subtotal, totalIGV, importeTotal } = calculateTotals();
 
@@ -149,8 +208,8 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="idTipoDocumento">Tipo de Documento</Label>
-                    <Select 
-                      value={formData.idTipoDocumento.toString()} 
+                    <Select
+                      value={formData.idTipoDocumento.toString()}
                       onValueChange={(value) => handleSelectChange('idTipoDocumento', value)}
                     >
                       <SelectTrigger>
@@ -181,8 +240,8 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="idCliente">Cliente</Label>
-                    <Select 
-                      value={formData.idCliente.toString()} 
+                    <Select
+                      value={formData.idCliente.toString()}
                       onValueChange={(value) => handleSelectChange('idCliente', value)}
                     >
                       <SelectTrigger>
@@ -199,8 +258,8 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="idEmpresa">Empresa</Label>
-                    <Select 
-                      value={formData.idEmpresa.toString()} 
+                    <Select
+                      value={formData.idEmpresa.toString()}
                       onValueChange={(value) => handleSelectChange('idEmpresa', value)}
                     >
                       <SelectTrigger>
@@ -219,8 +278,8 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
 
                 <div className="space-y-2">
                   <Label htmlFor="idFormaPago">Forma de Pago</Label>
-                  <Select 
-                    value={formData.idFormaPago.toString()} 
+                  <Select
+                    value={formData.idFormaPago.toString()}
                     onValueChange={(value) => handleSelectChange('idFormaPago', value)}
                   >
                     <SelectTrigger>
@@ -260,8 +319,8 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                     <div key={index} className="grid grid-cols-12 gap-4 items-end p-4 border rounded-lg">
                       <div className="col-span-3">
                         <Label>Producto</Label>
-                        <Select 
-                          value={detalle.idProducto.toString()} 
+                        <Select
+                          value={detalle.idProducto.toString()}
                           onValueChange={(value) => handleDetalleChange(index, 'idProducto', value)}
                         >
                           <SelectTrigger>
@@ -270,7 +329,7 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                           <SelectContent>
                             {productos.map(producto => (
                               <SelectItem key={producto.id} value={producto.id.toString()}>
-                                {producto.descripcion}
+                                {producto.nombre}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -333,7 +392,7 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="mt-6 pt-4 border-t">
                   <div className="flex justify-end">
                     <div className="text-right space-y-2">

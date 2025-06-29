@@ -67,7 +67,7 @@ const DocumentsTable = ({ documents, onDelete, onEdit, onDownloadPDF }: Document
                 <TableCell>{doc.client}</TableCell>
                 <TableCell>{doc.company}</TableCell>
                 <TableCell>{doc.date}</TableCell>
-                <TableCell>${doc.total.toFixed(2)}</TableCell>
+                <TableCell>S/. {doc.total.toFixed(2)}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(doc.status)}`}>
                     {doc.status}
