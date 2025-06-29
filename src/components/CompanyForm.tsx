@@ -33,10 +33,10 @@ const CompanyForm = ({ company, onSave, onCancel }: CompanyFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
+
       if (company?.id) {
         await updateCompany(company.id, formData);
         toast({
@@ -50,7 +50,7 @@ const CompanyForm = ({ company, onSave, onCancel }: CompanyFormProps) => {
           description: "La nueva empresa ha sido agregada correctamente.",
         });
       }
-      
+
       onSave();
     } catch (err) {
       toast({

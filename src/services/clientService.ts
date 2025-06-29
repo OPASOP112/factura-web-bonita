@@ -1,7 +1,7 @@
 
 import { Cliente, ApiResponse } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export const getAllClients = async (): Promise<Cliente[]> => {
   const response = await fetch(`${API_URL}/clientes`);

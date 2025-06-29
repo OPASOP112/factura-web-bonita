@@ -37,10 +37,10 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
+
       const productData = {
         nombre: formData.nombre,
         codigo: formData.codigo,
@@ -63,7 +63,7 @@ const ProductForm = ({ producto, onSave, onCancel }: ProductFormProps) => {
           description: "El nuevo producto ha sido agregado correctamente.",
         });
       }
-      
+
       onSave();
     } catch (error) {
       toast({

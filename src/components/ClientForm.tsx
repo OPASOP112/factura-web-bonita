@@ -33,10 +33,10 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
+
       if (client?.id) {
         await updateClient(client.id, formData);
         toast({
@@ -50,7 +50,7 @@ const ClientForm = ({ client, onSave, onCancel }: ClientFormProps) => {
           description: "El nuevo cliente ha sido agregado correctamente.",
         });
       }
-      
+
       onSave();
     } catch (err) {
       toast({
