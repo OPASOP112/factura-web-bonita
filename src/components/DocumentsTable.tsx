@@ -81,7 +81,7 @@ const DocumentsTable = ({ documents, onDelete, onEdit, onDownloadPDF }: Document
                         variant="outline"
                         className="text-green-600 hover:bg-green-50"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                     </Link>
                     <Button
@@ -92,21 +92,8 @@ const DocumentsTable = ({ documents, onDelete, onEdit, onDownloadPDF }: Document
                     >
                       <Download className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onEdit(doc)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onDelete(doc.id)}
-                      className="text-red-600 hover:bg-red-50"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+
+
                   </div>
                 </TableCell>
               </TableRow>
