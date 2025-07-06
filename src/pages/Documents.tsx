@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { getAllDocuments } from "@/services/documentService";
-import { getAllClients } from "@/services/clientService";
-import { getAllCompanies } from "@/services/companyService";
+import { getAllDocuments, getDocumentById } from "@/services/documentService";
+import { getAllClients, getClientById } from "@/services/clientService";
+import { getAllCompanies, getCompanyById } from "@/services/companyService";
 import DocumentForm from "@/components/DocumentForm";
 import DocumentsHeader from "@/components/DocumentsHeader";
 import DocumentsSearch from "@/components/DocumentsSearch";
@@ -10,6 +10,8 @@ import DocumentsTable from "@/components/DocumentsTable";
 import { pdf } from '@react-pdf/renderer';
 import BoletaPDF from '@/components/pdf/BoletaPDF';
 import { saveAs } from "file-saver";
+import { getDetallesByDocumento } from "@/services/documentoDetalleService";
+import { getAllProducts } from "@/services/productService";
 
 
 const tipoDocumentoMap = {
@@ -87,40 +89,40 @@ const Documents = () => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
     toast({ title: "Documento eliminado", description: "Se eliminó correctamente." });
   };
-  
 
- const handleSave = async (documentData: any) => {
-  try {
-    const [clientesData, empresasData] = await Promise.all([
-      getAllClients(),
-      getAllCompanies(),
-    ]);
 
-    const cliente = clientesData.find((c) => c.id === documentData.idCliente);
-    const empresa = empresasData.find((e) => e.id === documentData.idEmpresa);
+  const handleSave = async (documentData: any) => {
+    try {
+      const [clientesData, empresasData] = await Promise.all([
+        getAllClients(),
+        getAllCompanies(),
+      ]);
 
-    const nuevoDoc = {
-      id: documentData.id,
-      type: tipoDocumentoMap[documentData.idTipoDocumento] || "Desconocido",
-      number: documentData.numero || `DOC-${documentData.id}`,
-      client: cliente ? `${cliente.nombre} ${cliente.apellido}` : "Desconocido",
-      company: empresa ? empresa.razonSocial : "Desconocido",
-      date: documentData.fechaEmision,
-      total: documentData.importeTotal,
-      status: estadoMap[documentData.estado] || "Pagado"
-    };
+      const cliente = clientesData.find((c) => c.id === documentData.idCliente);
+      const empresa = empresasData.find((e) => e.id === documentData.idEmpresa);
 
-    setDocuments((prev) => [...prev, nuevoDoc]);
-    setFilteredDocuments((prev) => [...prev, nuevoDoc]);
+      const nuevoDoc = {
+        id: documentData.id,
+        type: tipoDocumentoMap[documentData.idTipoDocumento] || "Desconocido",
+        number: documentData.numero || `DOC-${documentData.id}`,
+        client: cliente ? `${cliente.nombre} ${cliente.apellido}` : "Desconocido",
+        company: empresa ? empresa.razonSocial : "Desconocido",
+        date: documentData.fechaEmision,
+        total: documentData.importeTotal,
+        status: estadoMap[documentData.estado] || "Pagado"
+      };
 
-    toast({ title: "Documento guardado", description: "Se guardó correctamente." });
-  } catch (error) {
-    toast({ title: "Error", description: "No se pudo actualizar la lista de documentos", variant: "destructive" });
-  } finally {
-    setShowForm(false);
-    setEditingDocument(null);
-  }
-};
+      setDocuments((prev) => [...prev, nuevoDoc]);
+      setFilteredDocuments((prev) => [...prev, nuevoDoc]);
+
+      toast({ title: "Documento guardado", description: "Se guardó correctamente." });
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo actualizar la lista de documentos", variant: "destructive" });
+    } finally {
+      setShowForm(false);
+      setEditingDocument(null);
+    }
+  };
 
 
   const handleEdit = (document: any) => {
@@ -128,13 +130,48 @@ const Documents = () => {
     setShowForm(true);
   };
 
-  const handleDownloadPDF = (doc: any) => {
-    toast({
-      title: "Generando PDF",
-      description: `Descargando ${doc.type} ${doc.number}`,
-    });
-    console.log("Descargando PDF:", doc);
+  const handleDownloadPDF = async (doc: any) => {
+    try {
+      toast({
+        title: "Generando PDF...",
+        description: `Descargando ${doc.type} ${doc.number}`,
+      });
+
+      // 1. Obtener documento completo
+      const documentoCompleto = await getDocumentById(doc.id);
+
+      // 2. Obtener todos los datos relacionados
+      const [detalles, cliente, empresa, productos] = await Promise.all([
+        getDetallesByDocumento(doc.id),           // Detalles del documento
+        getClientById(documentoCompleto.idCliente), // Cliente
+        getCompanyById(documentoCompleto.idEmpresa), // Empresa
+        getAllProducts()                            // Lista de productos
+      ]);
+
+      // 3. Generar y guardar el PDF
+      const blob = await pdf(
+        <BoletaPDF
+          documento={documentoCompleto}
+          detalles={detalles}
+          productos={productos}
+          cliente={cliente}
+          empresa={empresa}
+          numeroDocumento={doc.number}
+        />
+      ).toBlob();
+
+      saveAs(blob, `${doc.type}-${doc.number}.pdf`);
+    } catch (error) {
+      console.error("Error al generar PDF", error);
+      toast({
+        title: "Error al generar PDF",
+        description: "No se pudo descargar el documento",
+        variant: "destructive",
+      });
+    }
   };
+
+
 
   if (showForm) {
     return (

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { registrarUsuario } from "@/services/loginService";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -40,18 +41,22 @@ const Register = () => {
       return;
     }
 
-    // Simulación de registro
-    setTimeout(() => {
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userEmail", formData.email);
-      localStorage.setItem("userName", formData.name);
+    try {
+      await registrarUsuario(formData.name, formData.email, formData.password);
       toast({
         title: "¡Registro exitoso!",
         description: "Tu cuenta ha sido creada correctamente.",
       });
-      navigate("/dashboard");
+      navigate("/login");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -118,8 +123,8 @@ const Register = () => {
                 required
               />
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={isLoading}
             >

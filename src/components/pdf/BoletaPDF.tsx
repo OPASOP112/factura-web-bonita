@@ -9,19 +9,14 @@ import {
   Font,
   Image,
 } from '@react-pdf/renderer';
-import '@fontsource/roboto';
-
+import Logo from '../../assets/logo-upn.png'
 import { Documento, DetalleDocumento, Producto, Cliente, Empresa } from '@/types';
 
-// Registramos la fuente Roboto
-Font.register({
-  family: 'Roboto',
-  src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxM.woff2',
-});
+
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: 'Roboto',
+    fontFamily: 'Helvetica',
     fontSize: 11,
     padding: 40,
     lineHeight: 1.5,
@@ -74,7 +69,7 @@ const BoletaPDF: React.FC<BoletaPDFProps> = ({
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Image
-            src="/img/logo-upn.png"
+            src={Logo}
             style={{ width: 80, height: 80, marginBottom: 10 }}
           />
           <Text style={styles.title}>Sistema Facturación EF POO</Text>

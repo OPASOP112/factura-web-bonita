@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { loginUser } from "@/services/loginService";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -19,25 +20,27 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulación de autenticación
-    setTimeout(() => {
-      if (email && password) {
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", email);
-        toast({
-          title: "¡Bienvenido!",
-          description: "Has iniciado sesión correctamente.",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Error",
-          description: "Por favor, completa todos los campos.",
-          variant: "destructive",
-        });
-      }
+    try {
+      const user = await loginUser(email, password); // ⬅️ email se usará como username
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("userName", user.nombre);
+      localStorage.setItem("userUsername", user.username);
+
+      toast({
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente.",
+      });
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo iniciar sesión",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -78,8 +81,8 @@ const Login = () => {
                 required
               />
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={isLoading}
             >

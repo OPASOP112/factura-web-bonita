@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DetalleDocumento, Producto } from "@/types";
 import { getDetallesByDocumento, createDetalle, deleteDetalle } from "@/services/documentoDetalleService";
 import { getAllProducts } from "@/services/productService";
+import { getDocumentById, updateDocument } from "@/services/documentService";
 
 interface DocumentoDetalleFormProps {
   idDocumento: number;
@@ -87,6 +88,16 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
       return updated;
     });
   };
+  const calcularTotalesDesdeLista = (lista: DetalleDocumento[]) => {
+    const subtotal = lista.reduce((sum, detalle) => {
+      return sum + ((detalle.cantidad * detalle.precioUnitario) - detalle.descuento);
+    }, 0);
+
+    const totalIGV = lista.reduce((sum, detalle) => sum + detalle.igvDetalle, 0);
+    const importeTotal = subtotal + totalIGV;
+
+    return { subtotal, totalIGV, importeTotal };
+  };
 
   const handleAgregarDetalle = async () => {
     try {
@@ -100,6 +111,7 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
       }
 
       setLoading(true);
+
       const igvDetalle = calcularIGV(nuevoDetalle.cantidad, nuevoDetalle.precioUnitario, nuevoDetalle.descuento);
 
       const detalleToCreate = {
@@ -113,6 +125,25 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
 
       await createDetalle(detalleToCreate);
 
+      // 🔁 Traemos los detalles actualizados directamente sin depender de setDetalles
+      const detallesActualizados = await getDetallesByDocumento(idDocumento);
+
+      // 💡 Calculamos totales sobre la nueva data obtenida
+      const { subtotal, totalIGV, importeTotal } = calcularTotalesDesdeLista(detallesActualizados);
+      console.log(totalIGV, '.', importeTotal)
+      // ✅ Actualizamos el documento con los nuevos totales
+      const documentoExistente = await getDocumentById(idDocumento);
+      const updated = {
+        ...documentoExistente,
+        importeTotal,
+        importeIGV: totalIGV
+      };
+      await updateDocument(idDocumento, updated);
+
+      // ✅ Refrescamos el estado
+      await loadData();
+
+      // ✅ Limpiamos el formulario
       setNuevoDetalle({
         idProducto: "",
         cantidad: 1,
@@ -120,8 +151,6 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
         descuento: 0,
         igvDetalle: 0
       });
-
-      await loadData();
 
       toast({
         title: "Detalle agregado",
@@ -138,11 +167,25 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
     }
   };
 
+
   const handleEliminarDetalle = async (id: number) => {
     try {
       setLoading(true);
       await deleteDetalle(id);
       await loadData();
+      const detallesActualizados = await getDetallesByDocumento(idDocumento);
+
+      const { subtotal, totalIGV, importeTotal } = calcularTotalesDesdeLista(detallesActualizados);
+      console.log("importe_Total:" + importeTotal + "importeIGV:" + totalIGV)
+      const documentoExistente = await getDocumentById(idDocumento);
+      const updated = {
+        ...documentoExistente,
+        importeTotal,
+        importeIGV: totalIGV
+      };
+      await updateDocument(idDocumento, updated);
+
+
       toast({
         title: "Detalle eliminado",
         description: "El detalle ha sido eliminado correctamente.",
@@ -157,6 +200,7 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
       setLoading(false);
     }
   };
+
 
   const calcularTotales = () => {
     const subtotal = detalles.reduce((sum, detalle) => {

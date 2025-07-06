@@ -1,9 +1,10 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Building2, FileText, LogOut, Plus, Edit, Trash, Search } from "lucide-react";
+import { getDashboardStats } from "@/services/dashboardService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,7 +22,21 @@ const Dashboard = () => {
     localStorage.removeItem("userName");
     navigate("/");
   };
+  const [stats, setStats] = useState({
+    clientes: 0,
+    empresas: 0,
+    productos: 0,
+    documentos: 0,
+  });
 
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    if (!isLoggedIn) navigate("/login");
+
+    getDashboardStats()
+      .then(data => setStats(data))
+      .catch(err => console.error("Error al cargar stats:", err));
+  }, [navigate]);
   const userName = localStorage.getItem("userName") || "Usuario";
 
   const menuItems = [
@@ -34,7 +49,7 @@ const Dashboard = () => {
       actions: ["Crear", "Ver", "Actualizar", "Eliminar"]
     },
     {
-      title: "Gestión de Empresas", 
+      title: "Gestión de Empresas",
       description: "Controla múltiples empresas",
       icon: Building2,
       path: "/companies",
@@ -45,7 +60,7 @@ const Dashboard = () => {
       title: "Gestión de Productos",
       description: "Administra tu inventario",
       icon: FileText,
-      path: "/products", 
+      path: "/products",
       color: "from-purple-500 to-purple-600",
       actions: ["Insertar", "Ver", "Actualizar", "Eliminar"]
     },
@@ -68,7 +83,7 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold text-gray-800">Panel de Control</h1>
             <p className="text-gray-600">Bienvenido, {userName}</p>
           </div>
-          <Button 
+          <Button
             onClick={handleLogout}
             variant="outline"
             className="text-red-600 border-red-200 hover:bg-red-50"
@@ -86,7 +101,7 @@ const Dashboard = () => {
             Sistema de Facturación Profesional
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Gestiona todos los aspectos de tu negocio desde un solo lugar. 
+            Gestiona todos los aspectos de tu negocio desde un solo lugar.
             Administra clientes, empresas, productos y genera documentos profesionales.
           </p>
         </div>
@@ -106,7 +121,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {item.actions.map((action, actionIndex) => (
-                    <span 
+                    <span
                       key={actionIndex}
                       className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
                     >
@@ -130,28 +145,28 @@ const Dashboard = () => {
             <CardContent className="p-6 text-center">
               <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
               <h3 className="font-semibold text-gray-800">Clientes</h3>
-              <p className="text-2xl font-bold text-blue-600">156</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.clientes}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
               <Building2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
               <h3 className="font-semibold text-gray-800">Empresas</h3>
-              <p className="text-2xl font-bold text-green-600">12</p>
+              <p className="text-2xl font-bold text-green-600">{stats.empresas}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
               <FileText className="h-8 w-8 text-purple-600 mx-auto mb-2" />
               <h3 className="font-semibold text-gray-800">Productos</h3>
-              <p className="text-2xl font-bold text-purple-600">89</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.productos}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
               <FileText className="h-8 w-8 text-orange-600 mx-auto mb-2" />
               <h3 className="font-semibold text-gray-800">Facturas</h3>
-              <p className="text-2xl font-bold text-orange-600">234</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.documentos}</p>
             </CardContent>
           </Card>
         </div>
