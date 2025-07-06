@@ -96,11 +96,23 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
 
   const handleDetalleChange = (index: number, field: string, value: any) => {
     const newDetalles = [...detalles];
-    newDetalles[index][field] = value;
 
-    // Calcular IGV automáticamente (18%)
-    if (field === 'cantidad' || field === 'precioUnitario' || field === 'descuento') {
-      const subtotal = (newDetalles[index].cantidad * newDetalles[index].precioUnitario) - newDetalles[index].descuento;
+    if (field === 'idProducto') {
+      const producto = productos.find(p => p.id.toString() === value);
+      if (producto) {
+        newDetalles[index].idProducto = value;
+        newDetalles[index].precioUnitario = producto.precio; // autocompleta
+        newDetalles[index].cantidad = 1; // default 1
+        newDetalles[index].descuento = 0;
+        const subtotal = producto.precio - 0;
+        newDetalles[index].igvDetalle = subtotal * 0.18;
+      }
+    } else {
+      newDetalles[index][field] = value;
+      const producto = productos.find(p => p.id.toString() === newDetalles[index].idProducto);
+      const precio = producto ? producto.precio : 0;
+      const subtotal = (newDetalles[index].cantidad * precio) - newDetalles[index].descuento;
+      newDetalles[index].precioUnitario = precio;
       newDetalles[index].igvDetalle = subtotal * 0.18;
     }
 
@@ -128,6 +140,21 @@ const DocumentForm = ({ document, onSave, onCancel }: DocumentFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar stock de productos
+    for (let detalle of detalles) {
+      const producto = productos.find(p => p.id.toString() === detalle.idProducto.toString());
+      if (!producto) continue;
+
+      if (detalle.cantidad > producto.stock) {
+        toast({
+          title: "Stock insuficiente",
+          description: `El producto "${producto.nombre}" solo tiene ${producto.stock} unidades disponibles.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     const { totalIGV, importeTotal } = calculateTotals();
 

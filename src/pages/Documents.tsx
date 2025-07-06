@@ -7,6 +7,10 @@ import DocumentForm from "@/components/DocumentForm";
 import DocumentsHeader from "@/components/DocumentsHeader";
 import DocumentsSearch from "@/components/DocumentsSearch";
 import DocumentsTable from "@/components/DocumentsTable";
+import { pdf } from '@react-pdf/renderer';
+import BoletaPDF from '@/components/pdf/BoletaPDF';
+import { saveAs } from "file-saver";
+
 
 const tipoDocumentoMap = {
   1: "Factura",
@@ -83,12 +87,41 @@ const Documents = () => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
     toast({ title: "Documento eliminado", description: "Se eliminó correctamente." });
   };
+  
 
-  const handleSave = (documentData: any) => {
+ const handleSave = async (documentData: any) => {
+  try {
+    const [clientesData, empresasData] = await Promise.all([
+      getAllClients(),
+      getAllCompanies(),
+    ]);
+
+    const cliente = clientesData.find((c) => c.id === documentData.idCliente);
+    const empresa = empresasData.find((e) => e.id === documentData.idEmpresa);
+
+    const nuevoDoc = {
+      id: documentData.id,
+      type: tipoDocumentoMap[documentData.idTipoDocumento] || "Desconocido",
+      number: documentData.numero || `DOC-${documentData.id}`,
+      client: cliente ? `${cliente.nombre} ${cliente.apellido}` : "Desconocido",
+      company: empresa ? empresa.razonSocial : "Desconocido",
+      date: documentData.fechaEmision,
+      total: documentData.importeTotal,
+      status: estadoMap[documentData.estado] || "Pagado"
+    };
+
+    setDocuments((prev) => [...prev, nuevoDoc]);
+    setFilteredDocuments((prev) => [...prev, nuevoDoc]);
+
     toast({ title: "Documento guardado", description: "Se guardó correctamente." });
+  } catch (error) {
+    toast({ title: "Error", description: "No se pudo actualizar la lista de documentos", variant: "destructive" });
+  } finally {
     setShowForm(false);
     setEditingDocument(null);
-  };
+  }
+};
+
 
   const handleEdit = (document: any) => {
     setEditingDocument(document);

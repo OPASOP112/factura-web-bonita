@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,13 +23,30 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
     idProducto: "",
     cantidad: 1,
     precioUnitario: 0,
-    descuento: 0
+    descuento: 0,
+    igvDetalle: 0
   });
   const { toast } = useToast();
 
   useEffect(() => {
     loadData();
   }, [idDocumento]);
+
+  useEffect(() => {
+    const productoSeleccionado = productos.find(p => p.id?.toString() === nuevoDetalle.idProducto);
+    if (productoSeleccionado) {
+      const nuevoPrecio = productoSeleccionado.precio ?? 0;
+      const descuento = 0;
+      const igv = calcularIGV(nuevoDetalle.cantidad, nuevoPrecio, descuento);
+
+      setNuevoDetalle(prev => ({
+        ...prev,
+        precioUnitario: nuevoPrecio,
+        descuento: descuento,
+        igvDetalle: igv
+      }));
+    }
+  }, [nuevoDetalle.idProducto]);
 
   const loadData = async () => {
     try {
@@ -60,8 +76,6 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
   const handleDetalleChange = (field: string, value: any) => {
     setNuevoDetalle(prev => {
       const updated = { ...prev, [field]: value };
-      
-      // Recalcular IGV automáticamente
       if (field === 'cantidad' || field === 'precioUnitario' || field === 'descuento') {
         const igv = calcularIGV(
           field === 'cantidad' ? value : updated.cantidad,
@@ -70,7 +84,6 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
         );
         return { ...updated, igvDetalle: igv };
       }
-      
       return updated;
     });
   };
@@ -88,7 +101,7 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
 
       setLoading(true);
       const igvDetalle = calcularIGV(nuevoDetalle.cantidad, nuevoDetalle.precioUnitario, nuevoDetalle.descuento);
-      
+
       const detalleToCreate = {
         idDocumento,
         idProducto: parseInt(nuevoDetalle.idProducto),
@@ -99,16 +112,15 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
       };
 
       await createDetalle(detalleToCreate);
-      
-      // Resetear formulario
+
       setNuevoDetalle({
         idProducto: "",
         cantidad: 1,
         precioUnitario: 0,
-        descuento: 0
+        descuento: 0,
+        igvDetalle: 0
       });
 
-      // Recargar detalles
       await loadData();
 
       toast({
@@ -150,10 +162,10 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
     const subtotal = detalles.reduce((sum, detalle) => {
       return sum + ((detalle.cantidad * detalle.precioUnitario) - detalle.descuento);
     }, 0);
-    
+
     const totalIGV = detalles.reduce((sum, detalle) => sum + detalle.igvDetalle, 0);
     const importeTotal = subtotal + totalIGV;
-    
+
     return { subtotal, totalIGV, importeTotal };
   };
 
@@ -173,7 +185,6 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
             </h1>
           </div>
 
-          {/* Agregar nuevo detalle */}
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Agregar Nuevo Detalle</CardTitle>
@@ -185,8 +196,8 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
               <div className="grid grid-cols-12 gap-4 items-end">
                 <div className="col-span-3">
                   <Label>Producto</Label>
-                  <Select 
-                    value={nuevoDetalle.idProducto} 
+                  <Select
+                    value={nuevoDetalle.idProducto}
                     onValueChange={(value) => handleDetalleChange('idProducto', value)}
                     disabled={loading}
                   >
@@ -239,7 +250,7 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
                   <Input
                     type="number"
                     step="0.01"
-                    value={calcularIGV(nuevoDetalle.cantidad, nuevoDetalle.precioUnitario, nuevoDetalle.descuento).toFixed(2)}
+                    value={nuevoDetalle.igvDetalle.toFixed(2)}
                     readOnly
                     className="bg-gray-50"
                   />
@@ -253,7 +264,6 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
             </CardContent>
           </Card>
 
-          {/* Lista de detalles existentes */}
           <Card>
             <CardHeader>
               <CardTitle>Detalles del Documento ({detalles.length})</CardTitle>
@@ -301,14 +311,14 @@ const DocumentoDetalleForm = ({ idDocumento, onCancel }: DocumentoDetalleFormPro
                     </div>
                   );
                 })}
-                
+
                 {detalles.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     No hay detalles agregados a este documento
                   </div>
                 )}
               </div>
-              
+
               {detalles.length > 0 && (
                 <div className="mt-6 pt-4 border-t">
                   <div className="flex justify-end">
